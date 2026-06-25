@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live Poll Application</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial, sans-serif;
+}
+
+body{
+    background:#f4f6f9;
+    padding:20px;
+}
+
+.container{
+    max-width:1000px;
+    margin:auto;
+}
+
+h1{
+    text-align:center;
+    margin-bottom:20px;
+    color:#333;
+}
+
+.dashboard{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+    gap:15px;
+    margin-bottom:20px;
+}
+
+.card{
+    background:white;
+    padding:20px;
+    border-radius:10px;
+    text-align:center;
+    box-shadow:0 2px 8px rgba(0,0,0,0.1);
+}
+
+.card h2{
+    color:#2563eb;
+}
+
+.form{
+    background:white;
+    padding:20px;
+    border-radius:10px;
+    box-shadow:0 2px 8px rgba(0,0,0,0.1);
+    margin-bottom:20px;
+}
+
+.form input{
+    width:100%;
+    padding:12px;
+    margin:8px 0;
+    border:1px solid #ccc;
+    border-radius:6px;
+}
+
+button{
+    padding:10px 15px;
+    border:none;
+    border-radius:6px;
+    color:white;
+    cursor:pointer;
+}
+
+.create-btn{
+    background:#2563eb;
+}
+
+.vote-btn{
+    background:#16a34a;
+}
+
+.delete-btn{
+    background:#dc2626;
+}
+
+.polls{
+    display:grid;
+    gap:20px;
+}
+
+.poll-card{
+    background:white;
+    padding:20px;
+    border-radius:10px;
+    box-shadow:0 2px 8px rgba(0,0,0,0.1);
+}
+
+.option{
+    margin:10px 0;
+}
+
+.progress{
+    width:100%;
+    background:#ddd;
+    height:10px;
+    border-radius:10px;
+    overflow:hidden;
+    margin-top:5px;
+}
+
+.bar{
+    height:100%;
+    background:#2563eb;
+}
+
+.actions{
+    display:flex;
+    gap:10px;
+    margin-top:15px;
+}
+
+@media(max-width:768px){
+    .actions{
+        flex-direction:column;
+    }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+    <h1>📊 Live Poll Application</h1>
+
+    <div class="dashboard">
+        <div class="card">
+            <h2 id="totalPolls">0</h2>
+            <p>Total Polls</p>
+        </div>
+
+        <div class="card">
+            <h2 id="totalVotes">0</h2>
+            <p>Total Votes</p>
+        </div>
+
+        <div class="card">
+            <h2 id="activePolls">0</h2>
+            <p>Active Polls</p>
+        </div>
+    </div>
+
+    <div class="form">
+
+        <input type="text" id="question"
+        placeholder="Enter Poll Question">
+
+        <input type="text" id="option1"
+        placeholder="Option 1">
+
+        <input type="text" id="option2"
+        placeholder="Option 2">
+
+        <input type="text" id="option3"
+        placeholder="Option 3">
+
+        <button class="create-btn"
+        onclick="createPoll()">
+        Create Poll
+        </button>
+
+    </div>
+
+    <div class="polls" id="pollList"></div>
+
+</div>
+
+<script>
+
+let polls =
+JSON.parse(localStorage.getItem("polls")) || [];
+
+function saveData(){
+    localStorage.setItem(
+        "polls",
+        JSON.stringify(polls)
+    );
+}
+
+function createPoll(){
+
+    let question =
+    document.getElementById("question").value;
+
+    let option1 =
+    document.getElementById("option1").value;
+
+    let option2 =
+    document.getElementById("option2").value;
+
+    let option3 =
+    document.getElementById("option3").value;
+
+    if(
+        question === "" ||
+        option1 === "" ||
+        option2 === "" ||
+        option3 === ""
+    ){
+        alert("Please fill all fields");
+        return;
+    }
+
+    polls.push({
+        id:Date.now(),
+        question,
+        options:[
+            {text:option1,votes:0},
+            {text:option2,votes:0},
+            {text:option3,votes:0}
+        ]
+    });
+
+    saveData();
+    displayPolls();
+
+    document.getElementById("question").value="";
+    document.getElementById("option1").value="";
+    document.getElementById("option2").value="";
+    document.getElementById("option3").value="";
+}
+
+function vote(pollId,index){
+
+    polls = polls.map(poll=>{
+
+        if(poll.id===pollId){
+            poll.options[index].votes++;
+        }
+
+        return poll;
+    });
+
+    saveData();
+    displayPolls();
+}
+
+function deletePoll(id){
+
+    polls = polls.filter(
+        poll => poll.id !== id
+    );
+
+    saveData();
+    displayPolls();
+}
+
+function updateDashboard(){
+
+    document.getElementById("totalPolls")
+    .innerText = polls.length;
+
+    document.getElementById("activePolls")
+    .innerText = polls.length;
+
+    let totalVotes = 0;
+
+    polls.forEach(poll=>{
+        poll.options.forEach(option=>{
+            totalVotes += option.votes;
+        });
+    });
+
+    document.getElementById("totalVotes")
+    .innerText = totalVotes;
+}
+
+function displayPolls(){
+
+    let pollList =
+    document.getElementById("pollList");
+
+    pollList.innerHTML = "";
+
+    polls.forEach(poll=>{
+
+        let total =
+        poll.options.reduce(
+            (sum,opt)=>sum+opt.votes,0
+        );
+
+        let html = `
+        <div class="poll-card">
+        <h3>${poll.question}</h3>
+        `;
+
+        poll.options.forEach((option,index)=>{
+
+            let percent =
+            total === 0
+            ? 0
+            : ((option.votes/total)*100)
+              .toFixed(1);
+
+            html += `
+            <div class="option">
+
+                <p>
+                ${option.text}
+                (${option.votes} votes)
+                </p>
+
+                <div class="progress">
+                    <div class="bar"
+                    style="width:${percent}%">
+                    </div>
+                </div>
+
+                <small>${percent}%</small>
+
+                <br><br>
+
+                <button
+                class="vote-btn"
+                onclick="vote(${poll.id},${index})">
+                Vote
+                </button>
+
+            </div>
+            `;
+        });
+
+        html += `
+        <div class="actions">
+            <button
+            class="delete-btn"
+            onclick="deletePoll(${poll.id})">
+            Delete Poll
+            </button>
+        </div>
+        </div>
+        `;
+
+        pollList.innerHTML += html;
+    });
+
+    updateDashboard();
+}
+
+displayPolls();
+
+</script>
+
+</body>
+</html>
